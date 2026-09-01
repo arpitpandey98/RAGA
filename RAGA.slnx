@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="RAGA.Application/RAGA.Application.csproj" />
+  <Project Path="RAGA.Domain/RAGA.Domain.csproj" />
+  <Project Path="RAGA.Infrastructure/RAGA.Infrastructure.csproj" />
+  <Project Path="RAGA/RAGA.csproj" />
+</Solution>
