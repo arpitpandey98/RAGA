@@ -25,4 +25,8 @@
     <ProjectReference Include="..\RAGA.Infrastructure\RAGA.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AppData\Uploads\" />
+  </ItemGroup>
+
 </Project>

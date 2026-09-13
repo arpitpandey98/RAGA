@@ -1,10 +1,16 @@
-﻿namespace RAGA.Domain.Entities
+﻿using System.ComponentModel;
+
+namespace RAGA.Domain.Entities
 {
         public enum FileType
         {
+            [Description(".pdf")]
             PDF = 1,
+            [Description(".docx")]
             Word,
+            [Description(".xlsx")]
             Excel,
-            Other
+            [Description(".txt")]
+            Txt
         }
 }
