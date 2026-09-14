@@ -16,6 +16,10 @@ builder.Services.AddSwaggerGen();
 
 //scoped service for file storage
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<ITextExtractor, PdfTextExtractor>();
+builder.Services.AddScoped<IChunker, DocumentChunker>();
+builder.Services.AddScoped<IEmbeddingService, AzureOpenAIEmbeddingService>();
+builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>();
 
 var app = builder.Build();
 
