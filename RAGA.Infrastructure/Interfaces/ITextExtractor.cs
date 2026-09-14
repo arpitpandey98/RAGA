@@ -1,15 +1,13 @@
-﻿using RAGA.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using RAGA.Application.DTOs;
+using RAGA.Domain.Entities;
 
 namespace RAGA.Infrastructure.Interfaces
 {
-    public interface ITextExtractor
-    {
-        Task<string> ExtractTextAsync(
-        Stream fileStream,
-        FileType fileType,
-        CancellationToken ct);
-    }
+        public interface ITextExtractor
+        {
+            Task<List<ExtractedPage>> ExtractTextAsync(
+                Stream fileStream,
+                FileType fileType,
+                CancellationToken ct);
+        }
 }

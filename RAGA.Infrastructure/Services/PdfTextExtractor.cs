@@ -1,4 +1,5 @@
 ﻿using RAGA.Application.Common.Extensions;
+using RAGA.Application.DTOs;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Interfaces;
 using UglyToad.PdfPig;
@@ -7,7 +8,8 @@ namespace RAGA.Infrastructure.Services
 {
     public class PdfTextExtractor : ITextExtractor
     {
-        public Task<string> ExtractTextAsync(
+
+        public Task<List<ExtractedPage>> ExtractTextAsync(
         Stream fileStream,
         FileType fileType,
         CancellationToken ct)
@@ -21,18 +23,23 @@ namespace RAGA.Infrastructure.Services
                 throw new InvalidOperationException("Unsupported file type.");
             }
 
-            using var pdf = PdfDocument.Open(fileStream);
 
-            var text = new System.Text.StringBuilder();
+            var pages = new List<ExtractedPage>();
+
+            using var pdf = PdfDocument.Open(fileStream);
 
             foreach (var page in pdf.GetPages())
             {
                 ct.ThrowIfCancellationRequested();
 
-                text.AppendLine(page.Text);
+                pages.Add(new ExtractedPage
+                {
+                    PageNumber = page.Number,
+                    Text = page.Text
+                });
             }
 
-            return Task.FromResult(text.ToString());
+            return Task.FromResult(pages);
         }
     }
 }

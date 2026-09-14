@@ -20,5 +20,6 @@ namespace RAGA.Domain.Entities
         public SqlVector<float> Embedding { get; set; } = SqlVector<float>.CreateNull(0);
 
         public Document Document { get; set; } = null!;
+        public int PageNumber { get; set; }
     }
 }
