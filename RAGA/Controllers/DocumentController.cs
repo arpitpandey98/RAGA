@@ -87,6 +87,67 @@ namespace RAGA.Controllers
             return NoContent();
         }
 
+        [HttpPost("extract")]
+        public async Task<IActionResult> ExtractText(IFormFile file, ITextExtractor textExtractor,  CancellationToken cancellationToken)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("Please select a file.");
+            }
+
+            var fileType = Path.GetExtension(file.FileName);
+
+            await using var stream = file.OpenReadStream();
+
+            var text = await textExtractor.ExtractTextAsync(
+                stream,
+                ExtensionMapper.MapFileExtensionToFileType(fileType),
+                cancellationToken);
+
+            return Ok(new
+            {
+                FileName = file.FileName,
+                Text = text
+            });
+        }
+
+        [HttpPost("chunk")]
+        public async Task<IActionResult> ChunkFile(IFormFile file, ITextExtractor textExtractor, IChunker chunker, CancellationToken cancellationToken)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Please select a file.");
+
+            var fileType = Path.GetExtension(file.FileName);
+
+            await using var stream = file.OpenReadStream();
+
+            var text = await textExtractor.ExtractTextAsync(
+                stream,
+                ExtensionMapper.MapFileExtensionToFileType(fileType),
+                cancellationToken);
+
+            var chunks = chunker.ChunkText(text);
+
+            return Ok(new
+            {
+                FileName = file.FileName,
+                TotalCharacters = text.Length,
+                TotalChunks = chunks.Count,
+                Chunks = chunks
+            });
+        }
+
+        [HttpPost("{id}/process")]
+        public async Task<IActionResult> ProcessDocument(int id, [FromServices] IDocumentProcessingService processingService, CancellationToken ct)
+        {
+            await processingService.ProcessDocumentAsync(id, ct);
+
+            return Ok(new
+            {
+                message = "Document processed successfully.",
+                documentId = id
+            });
+        }
     }
 
 }
