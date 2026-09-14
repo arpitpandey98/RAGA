@@ -15,11 +15,14 @@ builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
 //scoped service for file storage
-builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+//builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // moved to azure blob storage
 builder.Services.AddScoped<ITextExtractor, PdfTextExtractor>();
 builder.Services.AddScoped<IChunker, DocumentChunker>();
 builder.Services.AddScoped<IEmbeddingService, AzureOpenAIEmbeddingService>();
 builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>();
+builder.Services.AddScoped<IDocumentSearchService, DocumentSearchService>();
+builder.Services.AddScoped<ISearchIndexService, AzureSearchIndexService>();
+builder.Services.AddScoped<IFileStorageService, AzureBlobFileStorageService>();
 
 var app = builder.Build();
 

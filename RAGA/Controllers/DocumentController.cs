@@ -14,10 +14,12 @@ namespace RAGA.Controllers
     {
         private readonly IFileStorageService _fileStorageService;
         private readonly RAGADbContext _context;
-        public DocumentController(RAGADbContext context, IFileStorageService fileStorageService)
+        private readonly ISearchIndexService _searchIndexService;
+        public DocumentController(RAGADbContext context, IFileStorageService fileStorageService, ISearchIndexService searchIndexService)
         {
             _context = context;
             _fileStorageService = fileStorageService;
+            _searchIndexService = searchIndexService;
         }
 
         [HttpGet("{id:int}")]
@@ -40,9 +42,7 @@ namespace RAGA.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadFile(
-        IFormFile file,
-        CancellationToken cancellationToken)
+        public async Task<IActionResult> UploadFile(IFormFile file, CancellationToken cancellationToken)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Please select a file.");
@@ -78,17 +78,26 @@ namespace RAGA.Controllers
             if (document == null)
                 return NotFound();
 
-            await _fileStorageService.DeleteFileAsync(document.BlobPath);
+            // 1. Remove document chunks from Azure AI Search
+            await _searchIndexService.DeleteDocumentAsync(
+                id,
+                cancellationToken);
 
+            // 2. Remove the physical file from Azure Blob Storage
+            await _fileStorageService.DeleteFileAsync(
+                document.BlobPath);
+
+            // 3. Remove document metadata from SQL Server
             _context.Documents.Remove(document);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(
+                cancellationToken);
 
             return NoContent();
         }
 
         [HttpPost("extract")]
-        public async Task<IActionResult> ExtractText(IFormFile file, ITextExtractor textExtractor,  CancellationToken cancellationToken)
+        public async Task<IActionResult> ExtractText(IFormFile file, ITextExtractor textExtractor, CancellationToken cancellationToken)
         {
             if (file == null || file.Length == 0)
             {
@@ -110,30 +119,37 @@ namespace RAGA.Controllers
                 Text = text
             });
         }
-
         [HttpPost("chunk")]
         public async Task<IActionResult> ChunkFile(IFormFile file, ITextExtractor textExtractor, IChunker chunker, CancellationToken cancellationToken)
         {
             if (file == null || file.Length == 0)
+            {
                 return BadRequest("Please select a file.");
+            }
 
             var fileType = Path.GetExtension(file.FileName);
 
             await using var stream = file.OpenReadStream();
 
-            var text = await textExtractor.ExtractTextAsync(
+            var pages = await textExtractor.ExtractTextAsync(
                 stream,
                 ExtensionMapper.MapFileExtensionToFileType(fileType),
                 cancellationToken);
 
-            var chunks = chunker.ChunkText(text);
+            var chunks = chunker.ChunkPages(pages);
 
             return Ok(new
             {
                 FileName = file.FileName,
-                TotalCharacters = text.Length,
+                TotalPages = pages.Count,
+                TotalCharacters = pages.Sum(x => x.Text.Length),
                 TotalChunks = chunks.Count,
-                Chunks = chunks
+                Chunks = chunks.Select(x => new
+                {
+                    x.ChunkIndex,
+                    x.PageNumber,
+                    x.Content
+                })
             });
         }
 
@@ -148,6 +164,21 @@ namespace RAGA.Controllers
                 documentId = id
             });
         }
+
+
+        // to delete orphan chucks of any documents 
+        //[HttpDelete("document/{documentId:int}")]
+        //public async Task<IActionResult> DeleteDocumentFromSearch(
+        //int documentId,
+        //CancellationToken ct)
+        //{
+        //    await _searchIndexService.DeleteDocumentAsync(
+        //        documentId,
+        //        ct);
+
+        //    return NoContent();
+        //}
+
     }
 
 }

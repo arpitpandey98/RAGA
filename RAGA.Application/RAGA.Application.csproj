@@ -10,8 +10,4 @@
     <ProjectReference Include="..\RAGA.Domain\RAGA.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\" />
-  </ItemGroup>
-
 </Project>

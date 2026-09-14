@@ -1,4 +1,5 @@
-﻿using RAGA.Infrastructure.Interfaces;
+﻿using RAGA.Application.DTOs;
+using RAGA.Infrastructure.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,44 +8,64 @@ namespace RAGA.Infrastructure.Services
 {
     public class DocumentChunker : IChunker
     {
-        public List<string> ChunkText(
-        string text,
+        public List<Chunk> ChunkPages(
+        List<ExtractedPage> pages,
         int maxTokens = 500,
         int overlapTokens = 50)
         {
-            if (string.IsNullOrWhiteSpace(text))
-                return [];
-
             if (maxTokens <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(maxTokens));
+            }
 
             if (overlapTokens < 0 || overlapTokens >= maxTokens)
-                throw new ArgumentOutOfRangeException(nameof(overlapTokens));
-
-            var words = text
-                .Split(
-                    [' ', '\r', '\n', '\t'],
-                    StringSplitOptions.RemoveEmptyEntries);
-
-            var chunks = new List<string>();
-
-            var step = maxTokens - overlapTokens;
-
-            for (int start = 0; start < words.Length; start += step)
             {
-                var chunkWords = words
-                    .Skip(start)
-                    .Take(maxTokens);
+                throw new ArgumentOutOfRangeException(nameof(overlapTokens));
+            }
 
-                var chunk = string.Join(' ', chunkWords);
+            var chunks = new List<Chunk>();
+            var chunkIndex = 0;
 
-                if (!string.IsNullOrWhiteSpace(chunk))
+            foreach (var page in pages)
+            {
+                var words = page.Text
+                    .Split(
+                        (char[]?)null,
+                        StringSplitOptions.RemoveEmptyEntries);
+
+                if (words.Length == 0)
                 {
-                    chunks.Add(chunk);
+                    continue;
                 }
 
-                if (start + maxTokens >= words.Length)
-                    break;
+                var start = 0;
+
+                while (start < words.Length)
+                {
+                    var count = Math.Min(
+                        maxTokens,
+                        words.Length - start);
+
+                    var content = string.Join(
+                        " ",
+                        words,
+                        start,
+                        count);
+
+                    chunks.Add(new Chunk
+                    {
+                        ChunkIndex = chunkIndex++,
+                        PageNumber = page.PageNumber,
+                        Content = content
+                    });
+
+                    if (start + count >= words.Length)
+                    {
+                        break;
+                    }
+
+                    start += maxTokens - overlapTokens;
+                }
             }
 
             return chunks;
