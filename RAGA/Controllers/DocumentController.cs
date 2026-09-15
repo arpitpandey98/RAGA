@@ -67,7 +67,7 @@ namespace RAGA.Controllers
             _context.Documents.Add(document);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return Ok("document uploaded successfully");
+            return Ok(document);
         }
 
         [HttpDelete("{id:int}")]

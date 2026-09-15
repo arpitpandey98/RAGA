@@ -14,6 +14,16 @@ builder.Services.AddDbContext<RAGADbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularDev", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 //scoped service for file storage
 //builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // moved to azure blob storage
@@ -29,6 +39,8 @@ builder.Services.AddScoped<IRagService, RagService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 
 var app = builder.Build();
+
+app.UseCors("AngularDev");
 
 if (app.Environment.IsDevelopment())
 {

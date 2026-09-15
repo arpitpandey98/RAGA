@@ -1,0 +1,79 @@
+<section class="documents-panel">
+
+    <div class="documents-header">
+        <h2>Documents</h2>
+        <span>{{ documents().length }}</span>
+    </div>
+
+    <div class="upload-section">
+
+        <input #fileInput type="file" accept=".pdf,.docx,.xlsx,.txt" hidden (change)="onFileSelected($event)" />
+
+        <button type="button" (click)="fileInput.click()" [disabled]="loading()">
+            + Upload
+        </button>
+
+    </div>
+
+    @if (loading()) {
+
+    <p class="status">
+        Uploading...
+    </p>
+
+    } @else if (error()) {
+
+    <p class="error">
+        {{ error() }}
+    </p>
+
+    } @else if (documents().length === 0) {
+
+    <p class="status">
+        No documents uploaded yet.
+    </p>
+
+    } @else {
+
+    <div class="document-list">
+
+        @for (document of documents(); track document.id) {
+
+        <div class="document-item">
+
+            <div>
+                <strong>{{ document.fileName }}</strong>
+
+                <small>
+                    Uploaded by {{ document.uploadedBy }}
+                </small>
+            </div>
+
+            <span class="status-badge" [class.status-uploaded]="document.status === 1"
+                [class.status-processing]="document.status === 2" [class.status-processed]="document.status === 3"
+                [class.status-failed]="document.status === 4">
+                @switch (document.status) {
+                @case (1) {
+                Uploaded
+                }
+                @case (2) {
+                Processing
+                }
+                @case (3) {
+                Processed
+                }
+                @case (4) {
+                Failed
+                }
+                }
+            </span>
+
+        </div>
+
+        }
+
+    </div>
+
+    }
+
+</section>
