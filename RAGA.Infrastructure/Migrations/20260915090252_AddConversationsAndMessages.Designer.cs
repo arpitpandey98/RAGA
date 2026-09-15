@@ -4,6 +4,7 @@ using Microsoft.Data.SqlTypes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RAGA.Infrastructure.Data;
 
@@ -12,9 +13,11 @@ using RAGA.Infrastructure.Data;
 namespace RAGA.Infrastructure.Migrations
 {
     [DbContext(typeof(RAGADbContext))]
-    partial class RAGADbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915090252_AddConversationsAndMessages")]
+    partial class AddConversationsAndMessages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

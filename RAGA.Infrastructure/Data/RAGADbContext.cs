@@ -13,6 +13,8 @@ namespace RAGA.Infrastructure.Data
 
         public DbSet<Document> Documents => Set<Document>();
         public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
+        public DbSet<Conversation> Conversations => Set<Conversation>();
+        public DbSet<Message> Messages => Set<Message>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +39,43 @@ namespace RAGA.Infrastructure.Data
                 {
                     x.DocumentId,
                     x.ChunkIndex
+                });
+            });
+
+            modelBuilder.Entity<Conversation>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.CreatedAt)
+                    .IsRequired();
+
+                entity.Property(x => x.UpdatedAt)
+                    .IsRequired();
+            });
+
+            modelBuilder.Entity<Message>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Role)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(x => x.Content)
+                    .IsRequired();
+
+                entity.Property(x => x.CreatedAt)
+                    .IsRequired();
+
+                entity.HasOne(x => x.Conversation)
+                    .WithMany(x => x.Messages)
+                    .HasForeignKey(x => x.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new
+                {
+                    x.ConversationId,
+                    x.CreatedAt
                 });
             });
         }

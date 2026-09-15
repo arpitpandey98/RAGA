@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
 using RAGA.Infrastructure.Services;
@@ -23,6 +24,9 @@ builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService
 builder.Services.AddScoped<IDocumentSearchService, DocumentSearchService>();
 builder.Services.AddScoped<ISearchIndexService, AzureSearchIndexService>();
 builder.Services.AddScoped<IFileStorageService, AzureBlobFileStorageService>();
+builder.Services.AddScoped<IChatCompletionService, AzureOpenAIChatService>();
+builder.Services.AddScoped<IRagService, RagService>();
+builder.Services.AddScoped<IConversationService, ConversationService>();
 
 var app = builder.Build();
 
