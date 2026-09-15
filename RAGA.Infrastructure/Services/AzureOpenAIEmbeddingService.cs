@@ -1,4 +1,5 @@
 ﻿using Azure.Identity;
+using Microsoft.Extensions.Configuration;
 using OpenAI;
 using OpenAI.Embeddings;
 using RAGA.Infrastructure.Interfaces;
@@ -10,23 +11,30 @@ namespace RAGA.Infrastructure.Services
     {
         private readonly EmbeddingClient _embeddingClient;
 
-        public AzureOpenAIEmbeddingService()
+        public AzureOpenAIEmbeddingService(IConfiguration configuration)
         {
-            var endpoint = new Uri(
-                "https://raga-foundry.openai.azure.com/openai/v1/");
+            var endpoint =
+                configuration["AzureOpenAI:Endpoint"]
+                ?? throw new InvalidOperationException(
+                    "AzureOpenAI:Endpoint is not configured.");
 
-            BearerTokenPolicy tokenPolicy = new(
+            var deployment =
+                configuration["AzureOpenAI:EmbeddingDeployment"]
+                ?? throw new InvalidOperationException(
+                    "AzureOpenAI:EmbeddingDeployment is not configured.");
+
+            var tokenPolicy = new BearerTokenPolicy(
                 new DefaultAzureCredential(),
                 "https://ai.azure.com/.default");
 
 #pragma warning disable OPENAI001
 
             _embeddingClient = new EmbeddingClient(
-                model: "text-embedding-3-small",
+                model: deployment,
                 authenticationPolicy: tokenPolicy,
                 options: new OpenAIClientOptions
                 {
-                    Endpoint = endpoint
+                    Endpoint = new Uri(endpoint)
                 });
 
 #pragma warning restore OPENAI001
