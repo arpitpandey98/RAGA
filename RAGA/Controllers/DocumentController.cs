@@ -1,15 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RAGA.Application.Common.Extensions;
 using RAGA.Domain.Entities;
+using RAGA.Extensions;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
-using System.IO;
 
 namespace RAGA.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DocumentController : ControllerBase
     {
         private readonly IFileStorageService _fileStorageService;
@@ -25,7 +27,11 @@ namespace RAGA.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var userObjectId = User.GetUserObjectId();
+
+            var document = await _context.Documents
+                .FirstOrDefaultAsync(
+                    x => x.Id == id && x.UploadedBy == userObjectId);
 
             if (document == null)
                 return NotFound();
@@ -36,7 +42,9 @@ namespace RAGA.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
-            var documents = await _context.Documents.ToListAsync(cancellationToken);
+            var userObjectId = User.GetUserObjectId();
+
+            var documents = await _context.Documents.Where(x => x.UploadedBy == userObjectId).ToListAsync(cancellationToken);
 
             return Ok(documents);
         }
@@ -60,7 +68,7 @@ namespace RAGA.Controllers
                 FileType = ExtensionMapper.MapFileExtensionToFileType(Path.GetExtension(file.FileName)),
                 BlobPath = savedPath,
                 UploadedAt = DateTime.UtcNow,
-                UploadedBy = "Admin",
+                UploadedBy = User.GetUserObjectId(),
                 Status = Status.Uploaded
             };
 
@@ -73,7 +81,12 @@ namespace RAGA.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var userObjectId = User.GetUserObjectId();
+
+            var document = await _context.Documents
+                .FirstOrDefaultAsync(
+                    x => x.Id == id && x.UploadedBy == userObjectId,
+                    cancellationToken);
 
             if (document == null)
                 return NotFound();
@@ -90,8 +103,7 @@ namespace RAGA.Controllers
             // 3. Remove document metadata from SQL Server
             _context.Documents.Remove(document);
 
-            await _context.SaveChangesAsync(
-                cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
             return NoContent();
         }
@@ -165,6 +177,20 @@ namespace RAGA.Controllers
             });
         }
 
+        //to check the current user and their claims, you can uncomment the following code:
+        //[HttpGet("me")]
+        //public IActionResult GetCurrentUser()
+        //{
+        //    return Ok(new
+        //    {
+        //        Name = User.Identity?.Name,
+        //        Claims = User.Claims.Select(c => new
+        //        {
+        //            c.Type,
+        //            c.Value
+        //        })
+        //    });
+        //}
 
         // to delete orphan chucks of any documents 
         //[HttpDelete("document/{documentId:int}")]

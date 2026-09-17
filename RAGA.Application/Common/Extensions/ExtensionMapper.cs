@@ -2,7 +2,7 @@
 
 namespace RAGA.Application.Common.Extensions
 {
-    public class ExtensionMapper
+    public static class ExtensionMapper
     {
         public static FileType MapFileExtensionToFileType(string? extension)
         {
