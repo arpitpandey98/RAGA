@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RAGA.Application.Common.Extensions;
 using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace RAGA.Api.Controllers;
 
@@ -53,22 +55,17 @@ public class ChatController : ControllerBase
         [FromBody] ChatRequest request,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Message))
-        {
-            return BadRequest(new
-            {
-                message = "Message cannot be empty."
-            });
-        }
 
         int conversationId;
+
+        var userId = User.GetUserObjectId();
 
         // Create a new conversation when one wasn't supplied
         if (string.IsNullOrWhiteSpace(request.ConversationId))
         {
             conversationId =
                 await _conversationService
-                    .CreateConversationAsync(ct);
+                    .CreateConversationAsync(userId, ct);
         }
         else if (!int.TryParse(
             request.ConversationId,
@@ -79,26 +76,63 @@ public class ChatController : ControllerBase
                 message = "ConversationId must be a valid integer."
             });
         }
+        else
+        {
+            var belongsToUser =
+                await _conversationService
+                    .BelongsToUserAsync(
+                        conversationId,
+                        userId,
+                        ct);
+
+            if (!belongsToUser)
+            {
+                return NotFound(new
+                {
+                    message = "Conversation not found."
+                });
+            }
+        }
 
         // Save the user's message
-        await _conversationService.AddMessageAsync(
-            conversationId,
-            "user",
-            request.Message,
-            ct);
+        try
+        {
+            await _conversationService.AddMessageAsync(
+                conversationId,
+                "user",
+                request.Message,
+                ct);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
 
         // Generate the grounded RAG answer
         var response =
-            await _ragService.AskAsync(
-                request.Message,
-                ct);
+        await _ragService.AskAsync(
+            request.Message,
+            ct);
 
         // Save the assistant's answer
-        await _conversationService.AddMessageAsync(
-            conversationId,
-            "assistant",
-            response.Answer,
-            ct);
+        try
+        {
+            await _conversationService.AddMessageAsync(
+                conversationId,
+                "assistant",
+                response.Answer,
+                ct);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
 
         return Ok(new
         {
@@ -111,8 +145,11 @@ public class ChatController : ControllerBase
 
 public class ChatRequest
 {
+    [MaxLength(20)]
     public string? ConversationId { get; set; }
 
+    [Required]
+    [MaxLength(4000)]
     public string Message { get; set; } = string.Empty;
 }
 

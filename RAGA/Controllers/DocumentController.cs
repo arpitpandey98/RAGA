@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RAGA.Application.Common.Extensions;
 using RAGA.Domain.Entities;
-using RAGA.Extensions;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
 
@@ -12,6 +12,8 @@ namespace RAGA.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [EnableRateLimiting("ApiPolicy")]
+
     public class DocumentController : ControllerBase
     {
         private readonly IFileStorageService _fileStorageService;
@@ -55,16 +57,38 @@ namespace RAGA.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("Please select a file.");
 
-            const long maxFileSize = 20 * 1024 * 1024;
+            var fileName = Path.GetFileName(file.FileName);
 
-            if (file.Length > maxFileSize)
-                return BadRequest("File size cannot exceed 20 MB.");
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return BadRequest("File name cannot be empty.");
+            }
 
-            var savedPath = await _fileStorageService.SaveFileAsync(file.OpenReadStream(), file.FileName, cancellationToken);
+            if (fileName.Length > 255)
+            {
+                return BadRequest("File name cannot exceed 255 characters.");
+            }
+
+            string savedPath;
+
+            try
+            {
+                savedPath = await _fileStorageService.SaveFileAsync(
+                    file.OpenReadStream(),
+                    file.FileName,
+                    cancellationToken);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
 
             var document = new Document
             {
-                FileName = file.FileName,
+                FileName = fileName,
                 FileType = ExtensionMapper.MapFileExtensionToFileType(Path.GetExtension(file.FileName)),
                 BlobPath = savedPath,
                 UploadedAt = DateTime.UtcNow,
@@ -116,6 +140,13 @@ namespace RAGA.Controllers
                 return BadRequest("Please select a file.");
             }
 
+            const long maxFileSize = 20 * 1024 * 1024;
+
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest("File size cannot exceed 20 MB.");
+            }
+
             var fileType = Path.GetExtension(file.FileName);
 
             await using var stream = file.OpenReadStream();
@@ -137,6 +168,13 @@ namespace RAGA.Controllers
             if (file == null || file.Length == 0)
             {
                 return BadRequest("Please select a file.");
+            }
+
+            const long maxFileSize = 20 * 1024 * 1024;
+
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest("File size cannot exceed 20 MB.");
             }
 
             var fileType = Path.GetExtension(file.FileName);

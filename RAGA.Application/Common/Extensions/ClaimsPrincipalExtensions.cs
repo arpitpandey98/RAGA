@@ -1,14 +1,14 @@
-﻿using System;
+﻿using RAGA.Application.Common.Constants;
+using System;
 using System.Security.Claims;
 
-
-namespace RAGA.Extensions
+namespace RAGA.Application.Common.Extensions
 {
     public static class ClaimsPrincipalExtensions
     {
         public static string GetUserObjectId(this ClaimsPrincipal user)
         {
-            return user.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value       
+            return user.FindFirst(AppClaimTypes.ObjectId)?.Value
                    ?? throw new InvalidOperationException(
                        "User Object ID claim was not found.");
         }

@@ -1,13 +1,43 @@
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
+using OpenTelemetry.Trace;
+using RAGA.Application.Common.Extensions;
 using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
 using RAGA.Infrastructure.Services;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddSource("RAGA")
+            .AddAzureMonitorTraceExporter(options =>
+                {
+                     options.ConnectionString =
+                     builder.Configuration[
+                     "ApplicationInsights:ConnectionString"];
+                });
+    });
+
+var keyVaultUri = builder.Configuration["KeyVault:VaultUri"];
+
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(
+        new Uri(keyVaultUri),
+        new DefaultAzureCredential());
+}
 
 builder.Services.AddControllers();
 
@@ -16,9 +46,49 @@ builder.Services
     .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+
+        await context.HttpContext.Response.WriteAsync(
+            "Too many requests. Please try again later.",
+            cancellationToken);
+    };
+
+    options.AddPolicy("ApiPolicy", httpContext =>
+    {
+        var userId = httpContext.User.Identity?.IsAuthenticated == true
+        ? httpContext.User.GetUserObjectId()
+        : "anonymous";
+
+        var partitionKey = string.IsNullOrEmpty(userId)
+            ? "anonymous"
+            : userId;
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:PermitLimit"),
+                Window = TimeSpan.FromSeconds(builder.Configuration.GetValue<int>("RateLimiting:WindowInSeconds")),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+});
 
 builder.Services.AddDbContext<RAGADbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration =
+        builder.Configuration["Redis:ConnectionString"];
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -83,6 +153,8 @@ builder.Services.AddScoped<IFileStorageService, AzureBlobFileStorageService>();
 builder.Services.AddScoped<IChatCompletionService, AzureOpenAIChatService>();
 builder.Services.AddScoped<IRagService, RagService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
+builder.Services.AddScoped<IConversationCacheService, RedisConversationCacheService>();
+builder.Services.AddScoped<IRagCacheService, RedisRagCacheService>();
 
 var app = builder.Build();
 
@@ -107,11 +179,29 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.MapGet("/", () => "Hello World!");
+
+// to test if Redis is working, uncomment the following code and call the endpoint /api/test/redis
+//app.MapGet("/api/test/redis", async (IDistributedCache cache) =>
+//{
+//    const string key = "raga:redis:test";
+
+//    await cache.SetStringAsync(
+//        key,
+//        "Redis is working!");
+
+//    var value = await cache.GetStringAsync(key);
+
+//    return Results.Ok(new
+//    {
+//        value
+//    });
+//});
 
 app.Run();
