@@ -51,7 +51,9 @@ namespace RAGA.Infrastructure.Services
 
             if (!allowedExtensions.Contains(fileExtension))
             {
-                throw new InvalidOperationException("Unsupported file type.");
+                throw new ArgumentException(
+                        "Unsupported file type. Allowed file types are: .pdf, .docx, .xlsx, .txt.",
+                        nameof(fileName));
             }
 
             var uniqueFileName = $"{Guid.NewGuid()}-{fileName}";

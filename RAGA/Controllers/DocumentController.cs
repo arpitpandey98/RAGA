@@ -1,15 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RAGA.Application.Common.Extensions;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
-using System.IO;
 
 namespace RAGA.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [EnableRateLimiting("ApiPolicy")]
+
     public class DocumentController : ControllerBase
     {
         private readonly IFileStorageService _fileStorageService;
@@ -25,7 +29,11 @@ namespace RAGA.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var userObjectId = User.GetUserObjectId();
+
+            var document = await _context.Documents
+                .FirstOrDefaultAsync(
+                    x => x.Id == id && x.UploadedBy == userObjectId);
 
             if (document == null)
                 return NotFound();
@@ -36,7 +44,9 @@ namespace RAGA.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
-            var documents = await _context.Documents.ToListAsync(cancellationToken);
+            var userObjectId = User.GetUserObjectId();
+
+            var documents = await _context.Documents.Where(x => x.UploadedBy == userObjectId).ToListAsync(cancellationToken);
 
             return Ok(documents);
         }
@@ -47,20 +57,42 @@ namespace RAGA.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("Please select a file.");
 
-            const long maxFileSize = 20 * 1024 * 1024;
+            var fileName = Path.GetFileName(file.FileName);
 
-            if (file.Length > maxFileSize)
-                return BadRequest("File size cannot exceed 20 MB.");
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return BadRequest("File name cannot be empty.");
+            }
 
-            var savedPath = await _fileStorageService.SaveFileAsync(file.OpenReadStream(), file.FileName, cancellationToken);
+            if (fileName.Length > 255)
+            {
+                return BadRequest("File name cannot exceed 255 characters.");
+            }
+
+            string savedPath;
+
+            try
+            {
+                savedPath = await _fileStorageService.SaveFileAsync(
+                    file.OpenReadStream(),
+                    file.FileName,
+                    cancellationToken);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
 
             var document = new Document
             {
-                FileName = file.FileName,
+                FileName = fileName,
                 FileType = ExtensionMapper.MapFileExtensionToFileType(Path.GetExtension(file.FileName)),
                 BlobPath = savedPath,
                 UploadedAt = DateTime.UtcNow,
-                UploadedBy = "Admin",
+                UploadedBy = User.GetUserObjectId(),
                 Status = Status.Uploaded
             };
 
@@ -73,7 +105,12 @@ namespace RAGA.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var userObjectId = User.GetUserObjectId();
+
+            var document = await _context.Documents
+                .FirstOrDefaultAsync(
+                    x => x.Id == id && x.UploadedBy == userObjectId,
+                    cancellationToken);
 
             if (document == null)
                 return NotFound();
@@ -90,8 +127,7 @@ namespace RAGA.Controllers
             // 3. Remove document metadata from SQL Server
             _context.Documents.Remove(document);
 
-            await _context.SaveChangesAsync(
-                cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
             return NoContent();
         }
@@ -102,6 +138,13 @@ namespace RAGA.Controllers
             if (file == null || file.Length == 0)
             {
                 return BadRequest("Please select a file.");
+            }
+
+            const long maxFileSize = 20 * 1024 * 1024;
+
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest("File size cannot exceed 20 MB.");
             }
 
             var fileType = Path.GetExtension(file.FileName);
@@ -125,6 +168,13 @@ namespace RAGA.Controllers
             if (file == null || file.Length == 0)
             {
                 return BadRequest("Please select a file.");
+            }
+
+            const long maxFileSize = 20 * 1024 * 1024;
+
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest("File size cannot exceed 20 MB.");
             }
 
             var fileType = Path.GetExtension(file.FileName);
@@ -165,6 +215,20 @@ namespace RAGA.Controllers
             });
         }
 
+        //to check the current user and their claims, you can uncomment the following code:
+        //[HttpGet("me")]
+        //public IActionResult GetCurrentUser()
+        //{
+        //    return Ok(new
+        //    {
+        //        Name = User.Identity?.Name,
+        //        Claims = User.Claims.Select(c => new
+        //        {
+        //            c.Type,
+        //            c.Value
+        //        })
+        //    });
+        //}
 
         // to delete orphan chucks of any documents 
         //[HttpDelete("document/{documentId:int}")]

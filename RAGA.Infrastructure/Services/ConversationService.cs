@@ -1,23 +1,30 @@
-﻿using RAGA.Application.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using RAGA.Application.Interfaces;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace RAGA.Infrastructure.Services;
 
 public class ConversationService : IConversationService
 {
     private readonly RAGADbContext _context;
+    private readonly IConversationCacheService _conversationCache;
 
-    public ConversationService(RAGADbContext context)
+    public ConversationService(RAGADbContext context, IConversationCacheService conversationCache)
     {
         _context = context;
+        _conversationCache = conversationCache;
     }
 
     public async Task<int> CreateConversationAsync(
-        CancellationToken ct)
+    string userId,
+    CancellationToken ct)
     {
-        var conversation = new Conversation();
+        var conversation = new Conversation
+        {
+            UserId = userId
+        };
 
         _context.Conversations.Add(conversation);
 
@@ -32,10 +39,10 @@ public class ConversationService : IConversationService
         string content,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(role))
+        if (role is not ("user" or "assistant"))
         {
             throw new ArgumentException(
-                "Message role cannot be empty.",
+                "Message role must be either 'user' or 'assistant'.",
                 nameof(role));
         }
 
@@ -43,6 +50,13 @@ public class ConversationService : IConversationService
         {
             throw new ArgumentException(
                 "Message content cannot be empty.",
+                nameof(content));
+        }
+
+        if (role == "user" && content.Length > 4000)
+        {
+            throw new ArgumentException(
+                "User message cannot exceed 4000 characters.",
                 nameof(content));
         }
 
@@ -77,5 +91,53 @@ public class ConversationService : IConversationService
         }
 
         await _context.SaveChangesAsync(ct);
+
+        await _conversationCache.RemoveAsync(
+        conversationId,
+        ct);
+    }
+
+    public async Task<bool> BelongsToUserAsync(
+    int conversationId,
+    string userId,
+    CancellationToken ct)
+    {
+        return await _context.Conversations
+            .AnyAsync(
+                x => x.Id == conversationId &&
+                     x.UserId == userId,
+                ct);
+    }
+
+    public async Task<List<Message>> GetMessagesAsync(
+    int conversationId,
+    string userId,
+    CancellationToken ct)
+    {
+        var cached = await _conversationCache.GetAsync(
+            conversationId,
+            ct);
+
+        if (cached != null)
+        {
+            return JsonSerializer.Deserialize<List<Message>>(cached)
+                   ?? [];
+        }
+
+        var messages = await _context.Messages
+            .Where(x =>
+                x.ConversationId == conversationId &&
+                x.Conversation.UserId == userId)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+        var serialized = JsonSerializer.Serialize(messages);
+
+        await _conversationCache.SetAsync(
+            conversationId,
+            serialized,
+            ct);
+
+        return messages;
     }
 }
