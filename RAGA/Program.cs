@@ -11,6 +11,7 @@ using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
 using RAGA.Infrastructure.Services;
+using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -84,11 +85,31 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddDbContext<RAGADbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddStackExchangeRedisCache(options =>
+var azureRedisEndpoint =
+    builder.Configuration["Redis:Endpoint"];
+
+if (!string.IsNullOrWhiteSpace(azureRedisEndpoint))
 {
-    options.Configuration =
-        builder.Configuration["Redis:ConnectionString"];
-});
+    var redisOptions =
+        StackExchange.Redis.ConfigurationOptions.Parse(
+            azureRedisEndpoint);
+
+    await redisOptions.ConfigureForAzureWithTokenCredentialAsync(
+        new DefaultAzureCredential());
+
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.ConfigurationOptions = redisOptions;
+    });
+}
+else
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration =
+            builder.Configuration["Redis:ConnectionString"];
+    });
+}
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -160,7 +181,8 @@ var app = builder.Build();
 
 app.UseCors("AngularDev");
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() ||
+    builder.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.MapOpenApi();
     app.UseSwagger();
@@ -187,21 +209,21 @@ app.MapControllers();
 
 app.MapGet("/", () => "Hello World!");
 
-// to test if Redis is working, uncomment the following code and call the endpoint /api/test/redis
-//app.MapGet("/api/test/redis", async (IDistributedCache cache) =>
-//{
-//    const string key = "raga:redis:test";
+//to test if Redis is working, uncomment the following code and call the endpoint /api/test/redis
+app.MapGet("/api/test/redis", async (IDistributedCache cache) =>
+{
+    const string key = "raga:redis:test";
 
-//    await cache.SetStringAsync(
-//        key,
-//        "Redis is working!");
+await cache.SetStringAsync(
+    key,
+    "Redis is working!");
 
-//    var value = await cache.GetStringAsync(key);
+var value = await cache.GetStringAsync(key);
 
-//    return Results.Ok(new
-//    {
-//        value
-//    });
-//});
+return Results.Ok(new
+{
+    value
+});
+});
 
 app.Run();

@@ -1,0 +1,33 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+COPY ["RAGA.DocumentProcessor/RAGA.DocumentProcessor.csproj", "RAGA.DocumentProcessor/"]
+COPY ["RAGA.Application/RAGA.Application.csproj", "RAGA.Application/"]
+COPY ["RAGA.Domain/RAGA.Domain.csproj", "RAGA.Domain/"]
+COPY ["RAGA.Infrastructure/RAGA.Infrastructure.csproj", "RAGA.Infrastructure/"]
+
+RUN dotnet restore "RAGA.DocumentProcessor/RAGA.DocumentProcessor.csproj"
+
+COPY . .
+
+WORKDIR "/src/RAGA.DocumentProcessor"
+
+RUN dotnet build "RAGA.DocumentProcessor.csproj" \
+    -c Release \
+    -o /app/build
+
+FROM build AS publish
+
+RUN dotnet publish "RAGA.DocumentProcessor.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+
+WORKDIR /app
+
+COPY --from=publish /app/publish .
+
+ENTRYPOINT ["dotnet", "RAGA.DocumentProcessor.dll"]
