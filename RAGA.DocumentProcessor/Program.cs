@@ -1,11 +1,20 @@
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using RAGA.Application.Interfaces;
 using RAGA.DocumentProcessor;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
 using RAGA.Infrastructure.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+var keyVaultUri = builder.Configuration["KeyVault:VaultUri"];
+
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(
+        new Uri(keyVaultUri),
+        new DefaultAzureCredential());
+}
 
 // Database
 builder.Services.AddDbContext<RAGADbContext>(options =>

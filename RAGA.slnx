@@ -1,7 +1,10 @@
 <Solution>
-  <Project Path="RAGA.Application/RAGA.Application.csproj" />
-  <Project Path="RAGA.DocumentProcessor/RAGA.DocumentProcessor.csproj" Id="0a4242ad-533f-4764-a1ca-2175482caccb" />
-  <Project Path="RAGA.Domain/RAGA.Domain.csproj" />
-  <Project Path="RAGA.Infrastructure/RAGA.Infrastructure.csproj" />
-  <Project Path="RAGA/RAGA.csproj" />
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Project Path="RAGA.Application\RAGA.Application.csproj" />
+  <Project Path="RAGA.DocumentProcessor\RAGA.DocumentProcessor.csproj" Id="0a4242ad-533f-4764-a1ca-2175482caccb" />
+  <Project Path="RAGA.Domain\RAGA.Domain.csproj" />
+  <Project Path="RAGA.Infrastructure\RAGA.Infrastructure.csproj" />
+  <Project Path="RAGA\RAGA.csproj" />
 </Solution>
