@@ -207,7 +207,7 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World - CI/CD Test");
 
 //to test if Redis is working, uncomment the following code and call the endpoint /api/test/redis
 app.MapGet("/api/test/redis", async (IDistributedCache cache) =>

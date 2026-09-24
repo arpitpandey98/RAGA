@@ -1,0 +1,67 @@
+name: RAGA CI/CD
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RAGA.slnx
+
+      - name: Build
+        run: dotnet build RAGA.slnx --configuration Release --no-restore
+
+      - name: Azure Login
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          az acr login --name ragaregistry01
+
+      - name: Build Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker build \
+            -f Dockerfile \
+            -t ragaregistry01.azurecr.io/raga-api:${{ github.sha }} \
+            .
+
+      - name: Push Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker push ragaregistry01.azurecr.io/raga-api:${{ github.sha }}
+
+      - name: Deploy to Azure Container App
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          az containerapp update \
+            --name raga-api \
+            --resource-group raga-rg \
+            --image ragaregistry01.azurecr.io/raga-api:${{ github.sha }}
