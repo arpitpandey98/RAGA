@@ -1,5 +1,17 @@
 <main class="app-container">
+<div class="auth-bar">
+  @if (!isLoggedIn()) {
+    <button type="button" (click)="login()">
+      Sign In
+    </button>
+  } @else {
+    <span>Signed in</span>
 
+    <button type="button" (click)="logout()">
+      Sign Out
+    </button>
+  }
+</div>
   <header class="app-header">
     <h1>{{ title() }}</h1>
   </header>
