@@ -7,7 +7,7 @@ namespace RAGA.Infrastructure.Services;
 public class AzureBlobFileStorageService : IFileStorageService
 {
     private readonly BlobContainerClient _containerClient;
-
+    private readonly string _pathPrefix;
     public AzureBlobFileStorageService(
         IConfiguration configuration)
     {
@@ -20,6 +20,11 @@ public class AzureBlobFileStorageService : IFileStorageService
             configuration["AzureStorage:ContainerName"]
             ?? throw new InvalidOperationException(
                 "AzureStorage:ContainerName is not configured.");
+
+        _pathPrefix =
+            configuration["AzureStorage:PathPrefix"]
+            ?? throw new InvalidOperationException(
+                "AzureStorage:PathPrefix is not configured.");
 
         var blobServiceClient =
             new BlobServiceClient(connectionString);
@@ -51,8 +56,7 @@ public class AzureBlobFileStorageService : IFileStorageService
         var safeFileName =
             Path.GetFileName(fileName);
 
-        var blobName =
-            $"{Guid.NewGuid():N}-{safeFileName}";
+        var blobName = $"{_pathPrefix.Trim('/')}/{Guid.NewGuid():N}-{safeFileName}";
 
         var blobClient =
             _containerClient.GetBlobClient(blobName);
