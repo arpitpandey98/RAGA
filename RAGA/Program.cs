@@ -25,9 +25,9 @@ builder.Services.AddOpenTelemetry()
             .AddSource("RAGA")
             .AddAzureMonitorTraceExporter(options =>
                 {
-                     options.ConnectionString =
-                     builder.Configuration[
-                     "ApplicationInsights:ConnectionString"];
+                    options.ConnectionString =
+                    builder.Configuration[
+                    "ApplicationInsights:ConnectionString"];
                 });
     });
 
@@ -155,10 +155,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDev", policy =>
     {
-        policy
-            .WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins("http://localhost:4200",
+                            "https://lemon-smoke-0d29a2d0f1.azurestaticapps.net")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
