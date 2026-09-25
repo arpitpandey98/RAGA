@@ -207,23 +207,23 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/", () => "Hello World - CI/CD Test");
+app.MapGet("/", () => "Hello World");
 
 //to test if Redis is working, uncomment the following code and call the endpoint /api/test/redis
-app.MapGet("/api/test/redis", async (IDistributedCache cache) =>
-{
-    const string key = "raga:redis:test";
+//app.MapGet("/api/test/redis", async (IDistributedCache cache) =>
+//{
+//    const string key = "raga:redis:test";
 
-await cache.SetStringAsync(
-    key,
-    "Redis is working!");
+//await cache.SetStringAsync(
+//    key,
+//    "Redis is working!");
 
-var value = await cache.GetStringAsync(key);
+//var value = await cache.GetStringAsync(key);
 
-return Results.Ok(new
-{
-    value
-});
-});
+//return Results.Ok(new
+//{
+//    value
+//});
+//});
 
 app.Run();

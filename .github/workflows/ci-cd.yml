@@ -20,6 +20,33 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Worker changes
+        id: worker_changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          echo "Comparing $BASE_SHA to ${{ github.sha }}"
+
+          git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed_files.txt
+
+          echo "Changed files:"
+          cat changed_files.txt
+
+          if grep -Eq '^(RAGA.DocumentProcessor/|RAGA.Application/|RAGA.Domain/|RAGA.Infrastructure/|Dockerfile.worker$)' changed_files.txt; then
+            echo "worker_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Worker changes detected."
+          else
+            echo "worker_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Worker changes detected."
+          fi
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -53,10 +80,23 @@ jobs:
             -t ragaregistry01.azurecr.io/raga-api:${{ github.sha }} \
             .
 
+      - name: Build Worker Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.worker_changes.outputs.worker_changed == 'true'
+        run: |
+          docker build \
+            -f Dockerfile.worker \
+            -t ragaregistry01.azurecr.io/raga-document-processor:${{ github.sha }} \
+            .
+
       - name: Push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           docker push ragaregistry01.azurecr.io/raga-api:${{ github.sha }}
+
+      - name: Push Worker Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.worker_changes.outputs.worker_changed == 'true'
+        run: |
+          docker push ragaregistry01.azurecr.io/raga-document-processor:${{ github.sha }}
 
       - name: Deploy to Azure Container App
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'

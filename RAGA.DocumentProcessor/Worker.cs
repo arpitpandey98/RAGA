@@ -23,6 +23,8 @@ public class Worker : BackgroundService
         CancellationToken stoppingToken)
     {
         _logger.LogInformation(
+            "RAGA Document Processor CI/CD test.");
+        _logger.LogInformation(
             "RAGA Document Processor started.");
 
         using var timer = new PeriodicTimer(
