@@ -155,8 +155,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDev", policy =>
     {
-        policy.WithOrigins("http://localhost:4200",
-                            "https://lemon-smoke-0d29a2d0f1.azurestaticapps.net")
+        var allowedOrigins =
+           builder.Configuration
+               .GetSection("Cors:AllowedOrigins")
+               .Get<string[]>() ?? [];
+
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
