@@ -20,6 +20,7 @@ public class DocumentSearchService : IDocumentSearchService
     }
 
     public async Task<List<DocumentSearchResult>> SearchAsync(
+        int tenantId,
         string query,
         int topK = 3,
         CancellationToken ct = default)
@@ -47,6 +48,7 @@ public class DocumentSearchService : IDocumentSearchService
 
         var results = await _dbContext.DocumentChunks
             .AsNoTracking()
+            .Where(x => x.Document.TenantId == tenantId)
             .Select(chunk => new
             {
                 Chunk = chunk,

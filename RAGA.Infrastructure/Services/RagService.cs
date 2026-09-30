@@ -3,6 +3,7 @@ using RAGA.Application.DTOs;
 using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Interfaces;
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -13,6 +14,8 @@ public class RagService : IRagService
     private readonly ISearchIndexService _searchIndexService;
     private readonly IChatCompletionService _chatCompletionService;
     private readonly IRagCacheService _ragCacheService;
+
+    private readonly ITenantService _tenantService;
     private readonly ILogger<RagService> _logger;
 
 
@@ -22,16 +25,19 @@ public class RagService : IRagService
         ISearchIndexService searchIndexService,
         IChatCompletionService chatCompletionService,
         IRagCacheService ragCacheService,
+        ITenantService tenantService,
         ILogger<RagService> logger)
     {
         _searchIndexService = searchIndexService;
         _chatCompletionService = chatCompletionService;
         _ragCacheService = ragCacheService;
+        _tenantService = tenantService;
         _logger = logger;
     }
 
     public async Task<RagResponse> AskAsync(
         string question,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(question))
@@ -41,7 +47,11 @@ public class RagService : IRagService
                 nameof(question));
         }
 
-        var cachedResponse = await _ragCacheService.GetAsync(question, ct);
+        var tenantId = await _tenantService.GetCurrentTenantIdAsync(
+        user,
+        ct);
+
+        var cachedResponse =  await _ragCacheService.GetAsync(tenantId, question, ct);
 
         if (cachedResponse != null)
         {
@@ -61,7 +71,7 @@ public class RagService : IRagService
 
         retrievalActivity?.SetTag("rag.question.length", question.Length);
 
-        var searchResults = await _searchIndexService.SearchAsync(question, topK: 5, ct);
+        var searchResults = await _searchIndexService.SearchAsync(tenantId, question, topK: 5, ct);
 
         _logger.LogInformation("RAG retrieval completed. QuestionLength={QuestionLength}, ResultCount={ResultCount}", question.Length, searchResults.Count);
 
@@ -122,7 +132,7 @@ public class RagService : IRagService
 
         generationActivity?.SetTag("rag.answer.length", answer.Length);
 
-        await _ragCacheService.SetAsync(question, answer, ct);
+        await _ragCacheService.SetAsync(tenantId, question, answer, ct);
 
         // 5. Build citations from the actual Search results
         var sources = searchResults
@@ -145,7 +155,7 @@ public class RagService : IRagService
             Sources = sources
         };
 
-        await _ragCacheService.SetAsync(question, JsonSerializer.Serialize(ragResponse), ct);
+        await _ragCacheService.SetAsync(tenantId, question, JsonSerializer.Serialize(ragResponse), ct);
 
         return new RagResponse
         {

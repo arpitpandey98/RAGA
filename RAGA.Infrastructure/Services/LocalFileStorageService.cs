@@ -1,15 +1,16 @@
-﻿using RAGA.Application.Common.Extensions;
+﻿using Microsoft.Extensions.Hosting;
+using RAGA.Application.Common.Extensions;
+using RAGA.Application.Interfaces;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Interfaces;
-using Microsoft.Extensions.Hosting;
 
 namespace RAGA.Infrastructure.Services
 {
     public class LocalFileStorageService : IFileStorageService
     {
         private readonly string _uploadPath;
-
-        public LocalFileStorageService(IHostEnvironment environment)
+        private readonly ITenantService _tenantService;
+        public LocalFileStorageService(IHostEnvironment environment, ITenantService tenantService)
         {
             _uploadPath = Path.Combine(
             environment.ContentRootPath,
@@ -17,6 +18,7 @@ namespace RAGA.Infrastructure.Services
             "uploads");
 
             Directory.CreateDirectory(_uploadPath);
+            _tenantService = tenantService;
         }
         public async Task<Stream> GetFileAsync(string fileUrl, CancellationToken cancellationToken)
         {
@@ -41,7 +43,7 @@ namespace RAGA.Infrastructure.Services
 
             return memoryStream;
         }
-        public async Task<string> SaveFileAsync(Stream fileStream, string fileName, CancellationToken cancellationToken)
+        public async Task<string> SaveFileAsync(Stream fileStream, string fileName,int tenantId, CancellationToken cancellationToken)
         {
             string fileExtension = Path.GetExtension(fileName);
 
@@ -56,7 +58,7 @@ namespace RAGA.Infrastructure.Services
                         nameof(fileName));
             }
 
-            var uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
+            var uniqueFileName = $"{Guid.NewGuid()}-tenant-{tenantId}-{fileName}";
 
             var fullPath = Path.Combine(_uploadPath, uniqueFileName);
 

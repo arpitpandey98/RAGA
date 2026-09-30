@@ -19,11 +19,13 @@ public class ConversationService : IConversationService
 
     public async Task<int> CreateConversationAsync(
     string userId,
+    int tenantId,
     CancellationToken ct)
     {
         var conversation = new Conversation
         {
-            UserId = userId
+            UserId = userId,
+            TenantId = tenantId
         };
 
         _context.Conversations.Add(conversation);

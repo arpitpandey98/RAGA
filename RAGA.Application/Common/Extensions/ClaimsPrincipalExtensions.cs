@@ -12,5 +12,12 @@ namespace RAGA.Application.Common.Extensions
                    ?? throw new InvalidOperationException(
                        "User Object ID claim was not found.");
         }
+
+        public static string GetTenantId(this ClaimsPrincipal user)
+        {
+            return user.FindFirst(AppClaimTypes.TenantId)?.Value
+                   ?? throw new InvalidOperationException(
+                       "Tenant ID claim was not found.");
+        }
     }
 }

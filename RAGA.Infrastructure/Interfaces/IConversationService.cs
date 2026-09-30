@@ -6,6 +6,7 @@ public interface IConversationService
 {
     Task<int> CreateConversationAsync(
     string userId,
+    int tenantId,
     CancellationToken ct);
 
     Task AddMessageAsync(

@@ -39,7 +39,11 @@ export function MSALInstanceFactory(): IPublicClientApplication {
   return new PublicClientApplication({
     auth: {
       clientId: environment.auth.clientId,
-      authority: `https://login.microsoftonline.com/${environment.auth.tenantId}`,
+      authority: environment.auth.authority,
+      knownAuthorities: [
+        'ragacustomers.ciamlogin.com',
+        'dc5be81c-b325-4dc0-9920-709a5db81d0c.ciamlogin.com'
+      ],
       redirectUri: window.location.origin,
       postLogoutRedirectUri: window.location.origin
     },

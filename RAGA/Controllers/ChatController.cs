@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RAGA.Application.Common.Extensions;
 using RAGA.Application.Interfaces;
-using RAGA.Infrastructure.Interfaces;
 using System.ComponentModel.DataAnnotations;
 
 namespace RAGA.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
@@ -41,13 +42,16 @@ public class ChatController : ControllerBase
 
     private readonly IRagService _ragService;
     private readonly IConversationService _conversationService;
+    public readonly ITenantService _tenantService;
 
     public ChatController(
         IRagService ragService,
-        IConversationService conversationService)
+        IConversationService conversationService,
+        ITenantService tenantService)
     {
         _ragService = ragService;
         _conversationService = conversationService;
+        _tenantService = tenantService;
     }
 
     [HttpPost]
@@ -59,13 +63,15 @@ public class ChatController : ControllerBase
         int conversationId;
 
         var userId = User.GetUserObjectId();
+        
+        var tenantId = await _tenantService.GetCurrentTenantIdAsync( User, ct);
 
         // Create a new conversation when one wasn't supplied
         if (string.IsNullOrWhiteSpace(request.ConversationId))
         {
             conversationId =
                 await _conversationService
-                    .CreateConversationAsync(userId, ct);
+                    .CreateConversationAsync(userId ,tenantId, ct);
         }
         else if (!int.TryParse(
             request.ConversationId,
@@ -115,6 +121,7 @@ public class ChatController : ControllerBase
         var response =
         await _ragService.AskAsync(
             request.Message,
+            User,
             ct);
 
         // Save the assistant's answer

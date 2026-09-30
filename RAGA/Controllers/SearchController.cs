@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RAGA.Application.Common.Extensions;
+using RAGA.Application.Interfaces;
 using RAGA.Infrastructure.Interfaces;
 
 namespace RAGA.Api.Controllers;
@@ -9,11 +11,13 @@ public class SearchController : ControllerBase
 {
     private readonly IDocumentSearchService _searchService;
     private readonly ISearchIndexService _searchIndexService;
+    private readonly ITenantService _tenantService;
 
-    public SearchController(IDocumentSearchService searchService, ISearchIndexService searchIndexService)
+    public SearchController(IDocumentSearchService searchService, ISearchIndexService searchIndexService, ITenantService tenantService)
     {
         _searchService = searchService;
         _searchIndexService = searchIndexService;
+        _tenantService = tenantService;
     }
 
     [HttpGet]
@@ -22,13 +26,17 @@ public class SearchController : ControllerBase
         [FromQuery] int topK = 3,
         CancellationToken ct = default)
     {
+        var tenantId = await _tenantService.GetCurrentTenantIdAsync(User, ct);
+
         var results = await _searchService.SearchAsync(
+            tenantId,
             query,
             topK,
             ct);
 
         return Ok(results);
     }
+
     [HttpPost("index")]
     public async Task<IActionResult> CreateIndex(
         CancellationToken ct)
@@ -47,7 +55,10 @@ public class SearchController : ControllerBase
     [FromQuery] int topK = 5,
     CancellationToken ct = default)
     {
+        var tenantId = await _tenantService.GetCurrentTenantIdAsync(User, ct);
+
         var results = await _searchIndexService.SearchAsync(
+            tenantId,
             query,
             topK,
             ct);

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RAGA.Application.Common.Extensions;
+using RAGA.Application.Interfaces;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Data;
 using RAGA.Infrastructure.Interfaces;
@@ -19,11 +20,13 @@ namespace RAGA.Controllers
         private readonly IFileStorageService _fileStorageService;
         private readonly RAGADbContext _context;
         private readonly ISearchIndexService _searchIndexService;
-        public DocumentController(RAGADbContext context, IFileStorageService fileStorageService, ISearchIndexService searchIndexService)
+        private readonly ITenantService _tenantService;
+        public DocumentController(RAGADbContext context, IFileStorageService fileStorageService, ISearchIndexService searchIndexService, ITenantService tenantService)
         {
             _context = context;
             _fileStorageService = fileStorageService;
             _searchIndexService = searchIndexService;
+            _tenantService = tenantService;
         }
 
         [HttpGet("{id:int}")]
@@ -69,6 +72,10 @@ namespace RAGA.Controllers
                 return BadRequest("File name cannot exceed 255 characters.");
             }
 
+            var tenantId = await _tenantService.GetCurrentTenantIdAsync(
+                User,
+                cancellationToken);
+
             string savedPath;
 
             try
@@ -76,6 +83,7 @@ namespace RAGA.Controllers
                 savedPath = await _fileStorageService.SaveFileAsync(
                     file.OpenReadStream(),
                     file.FileName,
+                    tenantId,
                     cancellationToken);
             }
             catch (ArgumentException ex)
@@ -88,6 +96,7 @@ namespace RAGA.Controllers
 
             var document = new Document
             {
+                TenantId = tenantId,
                 FileName = fileName,
                 FileType = ExtensionMapper.MapFileExtensionToFileType(Path.GetExtension(file.FileName)),
                 BlobPath = savedPath,
@@ -99,7 +108,17 @@ namespace RAGA.Controllers
             _context.Documents.Add(document);
             await _context.SaveChangesAsync(cancellationToken);
 
-            return Ok(document);
+            return Ok(new
+            {
+                document.Id,
+                document.TenantId,
+                document.FileName,
+                document.FileType,
+                document.BlobPath,
+                document.UploadedAt,
+                document.UploadedBy,
+                document.Status
+            });
         }
 
         [HttpDelete("{id:int}")]
@@ -107,9 +126,14 @@ namespace RAGA.Controllers
         {
             var userObjectId = User.GetUserObjectId();
 
+
+            var tenantId = await _tenantService.GetCurrentTenantIdAsync(
+                User,
+                cancellationToken);
+
             var document = await _context.Documents
                 .FirstOrDefaultAsync(
-                    x => x.Id == id && x.UploadedBy == userObjectId,
+                    x => x.Id == id && x.TenantId == tenantId && x.UploadedBy == userObjectId,
                     cancellationToken);
 
             if (document == null)
@@ -117,6 +141,7 @@ namespace RAGA.Controllers
 
             // 1. Remove document chunks from Azure AI Search
             await _searchIndexService.DeleteDocumentAsync(
+                tenantId,
                 id,
                 cancellationToken);
 
@@ -162,6 +187,7 @@ namespace RAGA.Controllers
                 Text = text
             });
         }
+
         [HttpPost("chunk")]
         public async Task<IActionResult> ChunkFile(IFormFile file, ITextExtractor textExtractor, IChunker chunker, CancellationToken cancellationToken)
         {

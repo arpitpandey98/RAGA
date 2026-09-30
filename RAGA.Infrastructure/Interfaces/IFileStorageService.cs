@@ -7,7 +7,7 @@ namespace RAGA.Infrastructure.Interfaces
     public interface IFileStorageService
     {
 
-        Task<string> SaveFileAsync(Stream fileStream, string fileName, CancellationToken cancellationToken);
+        Task<string> SaveFileAsync(Stream fileStream, string fileName, int tenantId, CancellationToken cancellationToken);
         Task<Stream> GetFileAsync(string fileUrl, CancellationToken cancellationToken);
         Task DeleteFileAsync(string fileUrl);
     }
