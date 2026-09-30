@@ -1,0 +1,103 @@
+<div class="landing">
+  <header class="nav">
+    <a class="brand" href="#top">
+      <img src="favicon.svg" alt="" width="28" height="28" />
+      <span>RAGA</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      @if (auth.isLoggedIn()) {
+        <span class="signed-in">Signed in{{ auth.displayName() ? ' as ' + auth.displayName() : '' }}</span>
+        <a class="ghost" routerLink="/app">Open assistant</a>
+        <button type="button" class="ghost" (click)="auth.logout()">Sign out</button>
+      } @else {
+        <button type="button" class="primary" (click)="auth.login()">Sign in with Microsoft</button>
+      }
+    </nav>
+  </header>
+
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <p class="eyebrow">Enterprise Knowledge Assistant</p>
+      <h1>Ask your company’s documents. Get answers with sources.</h1>
+      <p class="lede">
+        Upload PDFs, Word, Excel, and text. RAGA retrieves the right pages and cites them in chat.
+      </p>
+
+      <div class="hero-actions">
+        @if (auth.isLoggedIn()) {
+          <a class="primary" routerLink="/app">Open assistant</a>
+          <button type="button" class="secondary" (click)="auth.logout()">Sign out</button>
+        } @else {
+          <button type="button" class="primary" (click)="auth.login()">Sign in with Microsoft</button>
+          <a class="secondary" href="#how-it-works">See how it works</a>
+        }
+      </div>
+    </div>
+
+    <aside class="product-preview" aria-hidden="true">
+      <div class="preview-sidebar">
+        <div class="preview-label">Documents</div>
+        <div class="preview-file">
+          <span>Policy handbook.pdf</span>
+          <span class="badge">Processed</span>
+        </div>
+        <div class="preview-file">
+          <span>Q3 report.xlsx</span>
+          <span class="badge">Processed</span>
+        </div>
+      </div>
+      <div class="preview-chat">
+        <div class="preview-label">Chat</div>
+        <p class="preview-question">What is the remote-work approval process?</p>
+        <div class="preview-answer">
+          <p>Managers submit a request in the HR portal. Approval is required before the first remote day.</p>
+          <div class="preview-source">Policy handbook.pdf · Page 12</div>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="values">
+    <article>
+      <h2>Your files stay yours</h2>
+      <p>Sign in with your work account. Knowledge stays scoped to your tenant.</p>
+    </article>
+    <article>
+      <h2>Grounded answers</h2>
+      <p>Replies include the document name and page, so you can verify the source.</p>
+    </article>
+    <article>
+      <h2>Ready after upload</h2>
+      <p>Upload a file, wait until it is processed, then ask questions in chat.</p>
+    </article>
+  </section>
+
+  <section class="steps" id="how-it-works">
+    <h2>How it works</h2>
+    <ol>
+      <li>
+        <strong>Sign in</strong>
+        <span>Use your Microsoft work account.</span>
+      </li>
+      <li>
+        <strong>Upload</strong>
+        <span>Add a PDF, Word, Excel, or text file and wait until status is Processed.</span>
+      </li>
+      <li>
+        <strong>Ask</strong>
+        <span>Chat with your documents and open the cited page when you need to check the answer.</span>
+      </li>
+    </ol>
+  </section>
+
+  <footer class="footer">
+    @if (auth.isLoggedIn()) {
+      <a class="primary" routerLink="/app">Open assistant</a>
+    } @else {
+      <button type="button" class="primary" (click)="auth.login()">Sign in with Microsoft</button>
+    }
+    <p>RAGA · Microsoft Entra ID · citations on every answer</p>
+  </footer>
+</div>

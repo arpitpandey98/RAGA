@@ -1,7 +1,11 @@
 <section class="chat-panel">
 
     <header class="chat-header">
-        <h2>Chat</h2>
+        <div>
+            <p class="kicker">Assistant</p>
+            <h2>Grounded chat</h2>
+        </div>
+        <span class="mode">Citations on</span>
     </header>
 
     <div class="messages">
@@ -9,7 +13,9 @@
         @if (messages().length === 0) {
 
         <div class="empty-chat">
+            <div class="orb"></div>
             <p>Ask a question about your documents.</p>
+            <small>Answers will cite document name and page.</small>
         </div>
 
         } @else {
@@ -20,7 +26,7 @@
             [class.assistant-message]="message.role === 'assistant'">
 
             <div class="message-role">
-                {{ message.role === 'user' ? 'You' : 'AI' }}
+                {{ message.role === 'user' ? 'You' : 'RAGA' }}
             </div>
 
             <div class="message-content" [innerHTML]="
@@ -72,7 +78,7 @@
         @if (loading()) {
 
         <div class="loading">
-            AI is thinking...
+            Retrieving and composing...
         </div>
 
         }
@@ -89,7 +95,7 @@
 
     <form class="chat-input" (ngSubmit)="sendMessage()">
 
-        <input type="text" name="message" placeholder="Ask a question..." [ngModel]="messageInput()"
+        <input type="text" name="message" placeholder="Query your knowledge base..." [ngModel]="messageInput()"
             (ngModelChange)="onInputChange($event)" [disabled]="loading()" autocomplete="off" />
 
         <button type="submit" [disabled]="loading() || !messageInput().trim()">

@@ -15,6 +15,7 @@ export class Documents implements OnInit, OnDestroy {
   protected readonly documents = signal<Document[]>([]);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly deleteTarget = signal<Document | null>(null);
   private pollingSubscription?: Subscription;
 
 
@@ -89,8 +90,8 @@ export class Documents implements OnInit, OnDestroy {
   private hasProcessingDocuments(): boolean {
     return this.documents().some(
       document =>
-        document.status === 0 ||
-        document.status === 1
+        document.status === 1 ||
+        document.status === 2
     );
   }
 
@@ -131,6 +132,38 @@ export class Documents implements OnInit, OnDestroy {
 
     // Allow selecting the same file again later.
     input.value = '';
+  }
+
+  protected deleteDocument(document: Document): void {
+    this.deleteTarget.set(document);
+  }
+
+  protected cancelDelete(): void {
+    this.deleteTarget.set(null);
+  }
+
+  protected confirmDelete(): void {
+    const document = this.deleteTarget();
+
+    if (!document) {
+      return;
+    }
+
+    this.documentsService.deleteDocument(document.id).subscribe({
+      next: () => {
+        this.documents.update(documents =>
+          documents.filter(x => x.id !== document.id)
+        );
+
+        this.deleteTarget.set(null);
+      },
+
+      error: (error) => {
+        console.error('Failed to delete document:', error);
+        this.error.set('Unable to delete document.');
+        this.deleteTarget.set(null);
+      }
+    });
   }
 
   ngOnDestroy(): void {

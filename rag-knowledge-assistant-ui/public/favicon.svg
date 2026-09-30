@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="RAGA">
+  <rect width="32" height="32" rx="7" fill="#102A43"/>
+  <rect x="7.5" y="6.5" width="13.5" height="17" rx="1.6" fill="#F4EFE4"/>
+  <rect x="10" y="10.5" width="8.5" height="1.5" rx="0.75" fill="#102A43" opacity="0.28"/>
+  <rect x="10" y="13.8" width="6.5" height="1.5" rx="0.75" fill="#102A43" opacity="0.28"/>
+  <rect x="10" y="17.1" width="7.5" height="1.5" rx="0.75" fill="#102A43" opacity="0.28"/>
+  <circle cx="22.5" cy="21.5" r="5.2" fill="#C4A574"/>
+  <path d="M22.5 18.6v5.8M19.6 21.5h5.8" stroke="#102A43" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
