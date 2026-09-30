@@ -97,6 +97,7 @@ namespace RAGA.Infrastructure.Services
             await _searchIndexService.EnsureIndexAsync(ct);
 
             await _searchIndexService.IndexChunksAsync(
+                document.TenantId,
                 document.Id,
                 document.FileName,
                 searchChunks,

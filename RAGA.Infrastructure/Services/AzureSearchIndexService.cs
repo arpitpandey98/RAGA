@@ -86,6 +86,13 @@ public class AzureSearchIndexService : ISearchIndexService
                 IsFilterable = true
             },
 
+            new SimpleField(
+                "tenantId",
+                SearchFieldDataType.Int32)
+            {
+                IsFilterable = true
+            },
+
             new SearchableField("content"),
 
             new SearchableField("title"),
@@ -163,6 +170,7 @@ public class AzureSearchIndexService : ISearchIndexService
     }
 
     public async Task IndexChunksAsync(
+        int tenantId,
         int documentId,
         string title,
         List<SearchChunk> chunks,
@@ -175,6 +183,8 @@ public class AzureSearchIndexService : ISearchIndexService
                     $"document-{documentId}-chunk-{chunk.ChunkIndex}",
 
                 ["documentId"] = documentId,
+
+                ["tenantId"] = tenantId,
 
                 ["content"] = chunk.Content,
 
@@ -194,6 +204,7 @@ public class AzureSearchIndexService : ISearchIndexService
     }
 
     public async Task<List<SearchResult>> SearchAsync(
+        int tenantId,
         string query,
         int topK,
         CancellationToken ct)
@@ -228,12 +239,11 @@ public class AzureSearchIndexService : ISearchIndexService
                 }
             };
 
-
-
-
         var options = new SearchOptions
         {
             Size = topK,
+
+            Filter = $"tenantId eq {tenantId}",
 
             QueryType = SearchQueryType.Semantic,
 
@@ -282,7 +292,7 @@ public class AzureSearchIndexService : ISearchIndexService
 
                 Score = result.Score ?? 0,
 
-                RerankerScore =  result.SemanticSearch?.RerankerScore
+                RerankerScore = result.SemanticSearch?.RerankerScore
             });
         }
 
@@ -290,12 +300,13 @@ public class AzureSearchIndexService : ISearchIndexService
     }
 
     public async Task DeleteDocumentAsync(
+    int tenantId,
     int documentId,
     CancellationToken ct)
     {
         var options = new SearchOptions
         {
-            Filter = $"documentId eq {documentId}",
+            Filter = $"tenantId eq {tenantId} and documentId eq {documentId}",
             Size = 1000
         };
 

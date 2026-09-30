@@ -22,8 +22,7 @@ public class Worker : BackgroundService
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
-        _logger.LogInformation(
-            "RAGA Document Processor CI/CD test.");
+
         _logger.LogInformation(
             "RAGA Document Processor started.");
 
@@ -51,7 +50,7 @@ public class Worker : BackgroundService
         var processingService =
             scope.ServiceProvider
                 .GetRequiredService<IDocumentProcessingService>();
-
+        
         var documents =
             await context.Documents
                 .Where(x => x.Status == Status.Uploaded)

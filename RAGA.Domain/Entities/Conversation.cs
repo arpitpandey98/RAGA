@@ -9,6 +9,8 @@ namespace RAGA.Domain.Entities
         public int Id { get; set; }
 
         public string UserId { get; set; } = string.Empty;
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

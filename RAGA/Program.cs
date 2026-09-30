@@ -2,7 +2,6 @@ using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
 using OpenTelemetry.Trace;
@@ -44,9 +43,48 @@ builder.Services.AddControllers();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
+    .AddMicrosoftIdentityWebApi(
+        builder.Configuration,
+        "AzureAd");
 
-builder.Services.AddAuthorization();
+builder.Services
+    .AddAuthentication()
+    .AddJwtBearer("CustomerBearer", options =>
+    {
+        options.MetadataAddress =
+            builder.Configuration["CustomerAzureAd:MetadataAddress"]!;
+
+        options.Audience =
+            builder.Configuration["CustomerAzureAd:ClientId"]!;
+
+        options.RequireHttpsMetadata = true;
+
+        options.TokenValidationParameters =
+            new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer =
+                    builder.Configuration["CustomerAzureAd:Issuer"],
+
+                ValidateAudience = true,
+                ValidAudience =
+                    builder.Configuration["CustomerAzureAd:ClientId"],
+
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true
+            };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy =
+        new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
+            JwtBearerDefaults.AuthenticationScheme,
+            "CustomerBearer")
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -180,8 +218,30 @@ builder.Services.AddScoped<IRagService, RagService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IConversationCacheService, RedisConversationCacheService>();
 builder.Services.AddScoped<IRagCacheService, RedisRagCacheService>();
+builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddScoped<ITenantBootstrapService, TenantBootstrapService>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var bootstrapService = scope.ServiceProvider
+        .GetRequiredService<ITenantBootstrapService>();
+
+    var ownerObjectId = builder.Configuration[
+        "TenantBootstrap:OwnerObjectId"];
+
+    Console.WriteLine(
+    $"TenantBootstrap OwnerObjectId configured: {!string.IsNullOrWhiteSpace(ownerObjectId)}");
+
+    if (string.IsNullOrWhiteSpace(ownerObjectId))
+    {
+        throw new InvalidOperationException(
+            "TenantBootstrap:OwnerObjectId is not configured.");
+    }
+
+    await bootstrapService.EnsureAdminTenantAsync(ownerObjectId);
+}
 
 app.UseCors("AngularDev");
 

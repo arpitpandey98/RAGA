@@ -15,10 +15,24 @@ namespace RAGA.Infrastructure.Data
         public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
         public DbSet<Conversation> Conversations => Set<Conversation>();
         public DbSet<Message> Messages => Set<Message>();
+        public DbSet<Tenant> Tenants => Set<Tenant>();
+        public DbSet<TenantUser> TenantUsers => Set<TenantUser>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+
+            modelBuilder.Entity<Document>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne(x => x.Tenant)
+                    .WithMany(x => x.Documents)
+                    .HasForeignKey(x => x.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
 
             modelBuilder.Entity<DocumentChunk>(entity =>
             {
@@ -51,6 +65,11 @@ namespace RAGA.Infrastructure.Data
 
                 entity.Property(x => x.UpdatedAt)
                     .IsRequired();
+
+                entity.HasOne(x => x.Tenant)
+                    .WithMany(x => x.Conversations)
+                    .HasForeignKey(x => x.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Message>(entity =>
@@ -77,6 +96,49 @@ namespace RAGA.Infrastructure.Data
                     x.ConversationId,
                     x.CreatedAt
                 });
+            });
+
+            modelBuilder.Entity<Tenant>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Name)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.HasIndex(x => x.Name)
+                    .IsUnique();
+
+                entity.HasMany(x => x.Users)
+                    .WithOne(x => x.Tenant)
+                    .HasForeignKey(x => x.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(x => x.Documents)
+                    .WithOne(x => x.Tenant)
+                    .HasForeignKey(x => x.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(x => x.Conversations)
+                    .WithOne(x => x.Tenant)
+                    .HasForeignKey(x => x.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TenantUser>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EntraObjectId)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.Role)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(x => new { x.TenantId, x.EntraObjectId })
+                    .IsUnique();
             });
         }
     }

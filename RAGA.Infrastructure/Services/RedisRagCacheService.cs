@@ -15,20 +15,22 @@ public class RedisRagCacheService : IRagCacheService
     }
 
     public async Task<string?> GetAsync(
+        int tenantId,
         string question,
         CancellationToken ct)
     {
-        var key = CreateCacheKey(question);
+        var key = CreateCacheKey(tenantId, question);
 
         return await _cache.GetStringAsync(key, ct);
     }
 
     public async Task SetAsync(
+        int tenantId,
         string question,
         string response,
         CancellationToken ct)
     {
-        var key = CreateCacheKey(question);
+        var key = CreateCacheKey(tenantId, question);
 
         var options = new DistributedCacheEntryOptions
         {
@@ -44,15 +46,18 @@ public class RedisRagCacheService : IRagCacheService
     }
 
     public async Task RemoveAsync(
+        int tenantId,
         string question,
         CancellationToken ct)
     {
-        var key = CreateCacheKey(question);
+        var key = CreateCacheKey(tenantId, question);
 
         await _cache.RemoveAsync(key, ct);
     }
 
-    private static string CreateCacheKey(string question)
+    private static string CreateCacheKey(
+        int tenantId,
+        string question)
     {
         var normalizedQuestion =
             question.Trim().ToLowerInvariant();
@@ -60,9 +65,8 @@ public class RedisRagCacheService : IRagCacheService
         var hash = SHA256.HashData(
             Encoding.UTF8.GetBytes(normalizedQuestion));
 
-        var hashString =
-            Convert.ToHexString(hash);
+        var hashString = Convert.ToHexString(hash);
 
-        return $"raga:rag:{hashString}";
+        return $"raga:rag:{tenantId}:{hashString}";
     }
 }

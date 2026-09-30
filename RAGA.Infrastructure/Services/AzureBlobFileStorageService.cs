@@ -36,6 +36,7 @@ public class AzureBlobFileStorageService : IFileStorageService
     public async Task<string> SaveFileAsync(
         Stream fileStream,
         string fileName,
+        int tenantId,
         CancellationToken cancellationToken)
     {
         if (fileStream == null)
@@ -56,10 +57,9 @@ public class AzureBlobFileStorageService : IFileStorageService
         var safeFileName =
             Path.GetFileName(fileName);
 
-        var blobName = $"{_pathPrefix.Trim('/')}/{Guid.NewGuid():N}-{safeFileName}";
+        var blobName = $"{_pathPrefix.Trim('/')}/tenant-{tenantId}/{Guid.NewGuid():N}-{safeFileName}";
 
-        var blobClient =
-            _containerClient.GetBlobClient(blobName);
+        var blobClient = _containerClient.GetBlobClient(blobName);
 
         await blobClient.UploadAsync(
             fileStream,
