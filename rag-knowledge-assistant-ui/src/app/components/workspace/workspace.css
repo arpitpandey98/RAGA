@@ -1,0 +1,138 @@
+:host {
+  display: block;
+  height: 100%;
+  color: var(--raga-text, #e8f1ff);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.app-container {
+  --raga-bg: #070b14;
+  --raga-panel: rgba(10, 18, 34, 0.78);
+  --raga-line: rgba(126, 224, 255, 0.2);
+  --raga-text: #e8f1ff;
+  --raga-muted: #8aa0c2;
+  --raga-accent: #7ee0ff;
+  --raga-gold: #c4a574;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: var(--raga-text);
+  background:
+    radial-gradient(1200px 500px at 80% -10%, rgba(126, 224, 255, 0.12), transparent 55%),
+    radial-gradient(900px 400px at 0% 100%, rgba(196, 165, 116, 0.08), transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #070b14 100%);
+}
+
+.app-container::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(126, 224, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 224, 255, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.app-header,
+.app-content,
+.sidebar,
+.chat-area {
+  position: relative;
+  z-index: 1;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--raga-line);
+  background: rgba(7, 11, 20, 0.72);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--raga-text);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.app-header h1 {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--raga-muted);
+}
+
+.session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--raga-line);
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--raga-accent);
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--raga-accent);
+  box-shadow: 0 0 10px var(--raga-accent);
+  animation: pulse 1.8s ease-out infinite;
+}
+
+.app-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px;
+}
+
+.sidebar,
+.chat-area {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--raga-line);
+  border-radius: 16px;
+  background: var(--raga-panel);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02), 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.sidebar:has(.delete-modal-backdrop) {
+  z-index: 9999;
+  overflow: visible;
+}
+
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(126, 224, 255, 0.6); }
+  100% { box-shadow: 0 0 0 8px rgba(126, 224, 255, 0); }
+}
+
+@media (max-width: 860px) {
+  .app-content {
+    grid-template-columns: 1fr;
+  }
+}

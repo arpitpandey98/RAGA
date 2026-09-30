@@ -1,8 +1,11 @@
 <section class="documents-panel">
 
     <div class="documents-header">
-        <h2>Documents</h2>
-        <span>{{ documents().length }}</span>
+        <div>
+            <p class="kicker">Corpus</p>
+            <h2>Documents</h2>
+        </div>
+        <span class="count">{{ documents().length }}</span>
     </div>
 
     <div class="upload-section">
@@ -10,7 +13,7 @@
         <input #fileInput type="file" accept=".pdf,.docx,.xlsx,.txt" hidden (change)="onFileSelected($event)" />
 
         <button type="button" (click)="fileInput.click()" [disabled]="loading()">
-            + Upload
+            + Upload source
         </button>
 
     </div>
@@ -18,7 +21,7 @@
     @if (loading()) {
 
     <p class="status">
-        Uploading...
+        Uploading into the index...
     </p>
 
     } @else if (error()) {
@@ -30,7 +33,7 @@
     } @else if (documents().length === 0) {
 
     <p class="status">
-        No documents uploaded yet.
+        No sources indexed yet. Upload a file to ground the assistant.
     </p>
 
     } @else {
@@ -68,9 +71,50 @@
                 }
             </span>
 
+            <button type="button" class="delete-icon" title="Delete document" aria-label="Delete document"
+                (click)="deleteDocument(document)">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM6 8h12l-1 13H7L6 8z">
+                    </path>
+                </svg>
+
+            </button>
+
         </div>
 
         }
+
+    </div>
+
+    }
+
+    @if (deleteTarget()) {
+
+    <div class="delete-modal-backdrop">
+
+        <div class="delete-modal">
+
+            <h3>Delete document?</h3>
+
+            <p>
+                Are you sure you want to delete
+                <strong>{{ deleteTarget()?.fileName }}</strong>?
+            </p>
+
+            <div class="delete-modal-actions">
+
+                <button type="button" class="cancel-button" (click)="cancelDelete()">
+                    Cancel
+                </button>
+
+                <button type="button" class="confirm-delete-button" (click)="confirmDelete()">
+                    Yes, Delete
+                </button>
+
+            </div>
+
+        </div>
 
     </div>
 
