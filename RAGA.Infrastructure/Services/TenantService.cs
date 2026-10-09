@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RAGA.Application.Common.Extensions;
+using RAGA.Application.DTOs;
 using RAGA.Application.Interfaces;
 using RAGA.Domain.Entities;
 using RAGA.Infrastructure.Data;
@@ -10,6 +11,9 @@ namespace RAGA.Infrastructure.Services;
 
 public class TenantService : ITenantService
 {
+    // Matches the TenantUser.DisplayName column length.
+    private const int MaxDisplayNameLength = 256;
+
     private readonly RAGADbContext _dbContext;
     private readonly IConfiguration _configuration;
 
@@ -70,6 +74,7 @@ public class TenantService : ITenantService
         {
             TenantId = tenant.Id,
             EntraObjectId = objectId,
+            DisplayName = GetDisplayNameFromClaims(user),
             Role = "Admin"
         };
 
@@ -78,5 +83,51 @@ public class TenantService : ITenantService
         await _dbContext.SaveChangesAsync(ct);
 
         return tenant.Id;
+    }
+
+    public async Task<CurrentTenantDto> GetCurrentTenantAsync(
+        ClaimsPrincipal user,
+        CancellationToken ct)
+    {
+        var tenantId = await GetCurrentTenantIdAsync(user, ct);
+
+        var objectId = user.GetUserObjectId();
+
+        var tenantUser = await _dbContext.TenantUsers
+            .Include(x => x.Tenant)
+            .SingleAsync(
+                x => x.TenantId == tenantId &&
+                     x.EntraObjectId == objectId,
+                ct);
+
+        // Backfill users created before DisplayName existed
+        // (or provisioned without a name claim).
+        if (string.IsNullOrWhiteSpace(tenantUser.DisplayName))
+        {
+            var displayName = GetDisplayNameFromClaims(user);
+
+            if (displayName != null)
+            {
+                tenantUser.DisplayName = displayName;
+
+                await _dbContext.SaveChangesAsync(ct);
+            }
+        }
+
+        return new CurrentTenantDto
+        {
+            Id = tenantUser.Tenant.Id,
+            Name = tenantUser.Tenant.Name,
+            DisplayName = tenantUser.DisplayName
+        };
+    }
+
+    private static string? GetDisplayNameFromClaims(ClaimsPrincipal user)
+    {
+        var displayName = user.GetUserDisplayName();
+
+        return displayName is { Length: > MaxDisplayNameLength }
+            ? displayName[..MaxDisplayNameLength]
+            : displayName;
     }
 }

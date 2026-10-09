@@ -2,13 +2,18 @@
   <header class="nav">
     <a class="brand" href="#top">
       <img src="favicon.svg" alt="" width="28" height="28" />
-      <span>RAGA</span>
+      <span class="brand-text">
+        <span>RAGA</span>
+        <small>By Arpit Pandey</small>
+      </span>
     </a>
 
     <nav class="nav-links">
       <a href="#how-it-works">How it works</a>
       @if (auth.isLoggedIn()) {
-        <span class="signed-in">Signed in{{ auth.displayName() ? ' as ' + auth.displayName() : '' }}</span>
+        <span class="signed-in">
+          Signed in{{ auth.signedInName() ? ' as ' + auth.signedInName() : '' }}
+        </span>
         <a class="ghost" routerLink="/app">Open assistant</a>
         <button type="button" class="ghost" (click)="auth.logout()">Sign out</button>
       } @else {
@@ -98,6 +103,6 @@
     } @else {
       <button type="button" class="primary" (click)="auth.login()">Sign in with Microsoft</button>
     }
-    <p>RAGA · Microsoft Entra ID · citations on every answer</p>
+    <p>RAGA · By Arpit Pandey · Microsoft Entra ID · citations on every answer</p>
   </footer>
 </div>

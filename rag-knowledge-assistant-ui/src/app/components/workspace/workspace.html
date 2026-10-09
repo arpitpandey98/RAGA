@@ -2,9 +2,15 @@
   <header class="app-header">
     <a class="brand" routerLink="/">
       <img src="favicon.svg" alt="" width="24" height="24" />
-      <span>RAGA</span>
+      <span class="brand-text">
+        <span>RAGA</span>
+        <small>By Arpit Pandey</small>
+      </span>
     </a>
-    <h1>Knowledge core</h1>
+    <h1>Knowledge core</h1> 
+    @if (auth.signedInName()) {
+      <span class="welcome">Welcome, {{ auth.signedInName() }}</span>
+    }
     <span class="session-chip">
       <span class="pulse"></span>
       Live retrieval

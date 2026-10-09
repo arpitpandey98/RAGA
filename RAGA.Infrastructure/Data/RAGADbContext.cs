@@ -133,6 +133,9 @@ namespace RAGA.Infrastructure.Data
                     .IsRequired()
                     .HasMaxLength(100);
 
+                entity.Property(x => x.DisplayName)
+                    .HasMaxLength(256);
+
                 entity.Property(x => x.Role)
                     .IsRequired()
                     .HasMaxLength(50);

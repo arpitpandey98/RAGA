@@ -5,6 +5,6 @@ import { Workspace } from './components/workspace/workspace';
 
 export const routes: Routes = [
   { path: '', component: Landing },
-  { path: 'app', component: Workspace },
+  { path: 'app', component: Workspace, canActivate: [MsalGuard] },
   { path: '**', redirectTo: '' }
 ];

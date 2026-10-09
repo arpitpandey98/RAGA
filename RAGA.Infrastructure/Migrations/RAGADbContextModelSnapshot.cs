@@ -185,6 +185,10 @@ namespace RAGA.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("EntraObjectId")
                         .IsRequired()
                         .HasMaxLength(100)

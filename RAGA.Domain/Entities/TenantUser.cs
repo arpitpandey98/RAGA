@@ -8,6 +8,8 @@ public class TenantUser
 
     public required string EntraObjectId { get; set; }
 
+    public string? DisplayName { get; set; }
+
     public required string Role { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
